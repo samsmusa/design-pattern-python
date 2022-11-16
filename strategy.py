@@ -92,5 +92,73 @@ class StatisticsDisplay(DisplayElement, Observer, ABC):
         self._weather_data = None
         self._weather_data = weather_data
         weather_data.register_observer(self)
+        
+    def update(self, temp, humidity, pressure):
+        self._temp_sum += temp
+        self._num_readings += 1
+        self._max_temp = max(temp, self._max_temp)
+        self._min_temp = min(temp, self._min_temp)
+        self.display()
 
+    def display(self):
+        print(
+            f"Avg/Max/Min temperature = " \
+            f"{self._temp_sum / self._num_readings}" \
+            f"/{self._max_temp}"    \
+            f"/{self._min_temp}"
+            )
+
+
+class ForecastDisplay(DisplayElement, Observer, ABC):
+    """
+    Display element for forecast
+    """
+    def __init__(self, weather_data: WeatherData) -> None:
+        self._current_pressure = 29.92
+        self._last_pressure = None 
+        self._weather_data = weather_data
+        weather_data.register_observer(self)
+
+    def update(self, temp, humidity, pressure):
+        self._last_pressure = self._current_pressure
+        self._current_pressure = pressure
+        self.display()
+
+    def display(self):
+        print("Forecast: ", end="")
+        if self._current_pressure > self._last_pressure:
+            print("Improving weather on the way!")
+        elif self._current_pressure == self._last_pressure:
+            print("more of the same")
+        elif self._current_pressure < self._last_pressure:
+            print("Watch out for cooler, rainy weather")
+
+
+class HeatIndexDisplay(DisplayElement, Observer, ABC):
+    """
+    This is head index display
+    """
+    def __init__(self, weather_data: WeatherData) -> None:
+        self.heat_index = 0
+        self._weather_data = 0.
+        weather_data.register_observer(self)
+
+    def update(self, temp, humidity, pressure):
+        self.heat_index = self._compute_heat_index(temp, humidity)
+        self.display()
+
+    def display(self)->None:
+        print(f"Heat index is {self.heat_index: .5f}")
+
+    @classmethod
+    def _compute_heat_index(cls, t, rh):
+        index = ((16.923 + (0.185212 * t) + (5.37941 * rh) - (0.100254 * t * rh)
+                  + (0.00941695 * (t * t)) + (0.00728898 * (rh * rh))
+                  + (0.000345372 * (t * t * rh)) - (0.000814971 * (t * rh * rh)) +
+                  (0.0000102102 * (t * t * rh * rh)) - (0.000038646 * (t * t * t)) +
+                  (0.0000291583 * (rh * rh * rh)) + (0.00000142721 * (t * t * t * rh)) +
+                  (0.000000197483 * (t * rh * rh * rh)) - (0.0000000218429 * (t * t * t * rh * rh)) +
+                  0.000000000843296 * (t * t * rh * rh * rh)) -
+                 (0.0000000000481975 * (t * t * t * rh * rh * rh)))
+        return index
 
